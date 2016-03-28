@@ -1,0 +1,8 @@
+weeklyAlarm	KEYWORD1
+setWeeklyAlarm	KEYWORD2
+weeklyAlarmMon	KEYWORD2
+scanWeeklyAlarm	KEYWORD2
+weeklyAlarmInit	KEYWORD2
+weeklyAlarmSwitch KEYWORD2
+trigger KEYWORD6
+printAlarm KEYWORD2
