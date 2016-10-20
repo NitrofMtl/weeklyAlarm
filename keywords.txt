@@ -1,8 +1,9 @@
-weeklyAlarm	KEYWORD1
-setWeeklyAlarm	KEYWORD2
-weeklyAlarmMon	KEYWORD2
-scanWeeklyAlarm	KEYWORD2
-weeklyAlarmInit	KEYWORD2
-weeklyAlarmSwitch KEYWORD2
-trigger KEYWORD6
-printAlarm KEYWORD2
+WeeklyAlarm	KEYWORD1
+set	KEYWORD2
+add	KEYWORD2
+handler	KEYWORD6
+toggle	KEYWORD2
+isOnOff	KEYWORD2
+weekType	KEYWORD2
+almHour	KEYWORD2
+almMin	KEYWORD2
