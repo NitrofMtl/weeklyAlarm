@@ -1,21 +1,10 @@
 /*
-WeeklyAlarm is a library inpire like programable thermostat whit 10 memory and 4 mode.
+WeeklyAlarm is a library inspire like programable thermostat whit scalable memory and 4 mode.
 
-first mode is sigle day use, and is listed 1 to 7, coresponding to sunday to saturday.
-mode 8 is for week only, so monday to friday. 
-mode 9 is for week end.
-mode 10 is for all day.
-
-The second input of the setup function is a switch so you can turn of the alarm without lossing it.
-
-Function avalaible to use the library is:
-  - weeklyAlarmInit(); //initialize the alarm matrix
-  - setWeeklyAlarm(alarm tag, Switch, Mode, hour, minute); 
-  - weeklyAlarmMon(); // real time monitoring if an alarm have to be trigger. check it every 5 minute
-  - alarmTrigger(alarm tag); // if mon have set to true an alarm to be trigger, this will run the function associate with the alarm
-  - weeklyAlarmSwitch(alarm tag); toggle on/off an alarm
-  - weeklyAlarmSwitch(alarm tag, 1); toggle on an alarm
-  - weeklyAlarmSwitch(alarm tag, 0); toggle off an alarm
+first mode is sigle day use, and is listed 0 to 6, coresponding to sunday to saturday.
+mode 7 is for week only, so monday to friday. 
+mode 8 is for week end.
+mode 9 is for all day.
 
   Created on 26/06/15
    By Nitrof
@@ -39,39 +28,77 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 
 *///////////////////////////////////////////////////////////////
 
-   
+#ifndef WeeklyAlarm_h
+#define WeeklyAlarm_h
 
-#ifndef weeklyAlarm_h
-#define weeklyAlarm_h
+#if (ARDUINO >= 100)
+    #include "Arduino.h"
+#else
+    #include "WProgram.h"
+#endif
 
+#include <Time.h>
+#include <vector>
 
+#include <ArduinoJson.h>
 
-#include "Arduino.h"
-#include "Time.h"
+#define SUNDAY 0
+#define MONDAY 1
+#define TUESDAY 2
+#define WEDNESDAY 3
+#define THURSDAY 4
+#define FRIDAY 5
+#define SATURSDAY 6
+#define WEEK 7
+#define WEEK_END 8
+#define ALL_DAYS 9
 
-class weeklyAlarm {
+#define ON 1
+#define OFF 0
+
+class Alarm {
 public:
-void weeklyAlarmInit();
-void setWeeklyAlarm(int8_t alarmTag, int8_t alarmType, int8_t alarmSwitch, int8_t wHour, int8_t wMin);
-void weeklyAlarmMon();
-void scanWeeklyAlarm();
-void printAlarm(int8_t numAlarm);
-void weeklyAlarmSwitch(int8_t numAlarm);
-void weeklyAlarmSwitch(int8_t numAlarm, int8_t alarmSwitch);
+  Alarm();
+  Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
 
-int8_t trigger(int8_t numAlarm);
-int8_t getParam(int8_t alarmTag, int8_t param);
-
-private:
-//int weeklyAlarmID;
-//const int WAhour = 2;
-//const int WAminute = 3;
-//const int WAtrigger = 4;
-//int weeklyAlarmMatrix[10][5]; //matrix 1 = alarm number, 2 = alarm parameter;
-
-//int _lastAlarmCheck = millis();
-String printDigits(int8_t digits);
+  int8_t type;
+  bool almSwitch;
+  int8_t wHour;
+  int8_t wMin;
+  void (*callback)(int);
 };
 
 
+class WeeklyAlarm : public Alarm {
+public:
+  WeeklyAlarm(uint8_t numAlrm);
+  void add();
+  void add(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
+  void set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
+  void set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin ); //for backup restore
+  void set(int8_t id, String strType, String strAlmSwitch, int8_t wHour, int8_t wMin); //this set is for web request input
+
+  void handler();
+  void toggle(uint8_t id);
+
+
+  String isOnOff(uint8_t id);
+  String weekType(uint8_t id);
+  uint8_t almHour(uint8_t id);
+  uint8_t almMin(uint8_t id);
+
+  void printAlarm(uint8_t id);
+
+  JsonObject& backupAlarm(int8_t id, JsonBuffer& jsonBuffer);
+  void restoreAlarm(int8_t id, JsonObject& output);
+private:
+  std::vector<Alarm> alarm;
+
+  bool nestedBool(bool b0, bool b1, bool b2, bool b3);  
+  long _lastAlarmCheck = millis();
+  bool compareWeekDay(uint8_t type, uint8_t thisDay);
+
+  int8_t stringToWeekType(String weekTypeInput);
+  bool stringToAlmSwitch(String OnOffInput);
+};
 #endif
