@@ -7,3 +7,9 @@ isOnOff	KEYWORD2
 weekType	KEYWORD2
 almHour	KEYWORD2
 almMin	KEYWORD2
+
+type	KEYWORD1
+almSwitch	KEYWORD1
+wHour	KEYWORD1
+wMin	KEYWORD1
+callback	KEYWORD2
