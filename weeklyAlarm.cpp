@@ -1,10 +1,10 @@
 /*
-WeeklyAlarm is a library inspire like programable thermostat whit scalable memory and 4 mode.
+WeeklyAlarm is a library inspired by a programmable thermostat with scalable memory and 4 modes.
 
-first mode is sigle day use, and is listed 0 to 6, coresponding to sunday to saturday.
-mode 7 is for week only, so monday to friday. 
-mode 8 is for week end.
-mode 9 is for all day.
+first mode is single day use, and is listed 0 to 6, corresponding to sunday to saturday.
+mode 7 is weekdays only (monday to friday). 
+mode 8 is weekend.
+mode 9 is the whole week.
 
   Created on 26/06/15
    By Nitrof
