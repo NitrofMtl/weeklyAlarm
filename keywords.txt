@@ -1,4 +1,5 @@
 WeeklyAlarm	KEYWORD1
+weeklyAlarm	KEYWORD2
 set	KEYWORD2
 add	KEYWORD2
 handler	KEYWORD6

@@ -38,8 +38,8 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 #endif
 
 #include <Time.h>
-#include <vector>
-
+//#include <vector>
+#include <LinkedList.h>
 #include <ArduinoJson.h>
 
 #define SUNDAY 0
@@ -92,7 +92,7 @@ public:
   JsonObject& backupAlarm(int8_t id, JsonBuffer& jsonBuffer);
   void restoreAlarm(int8_t id, JsonObject& output);
 private:
-  std::vector<Alarm> alarm;
+  LinkedList<Alarm> alarm;
 
   bool nestedBool(bool b0, bool b1, bool b2, bool b3);  
   long _lastAlarmCheck = millis();

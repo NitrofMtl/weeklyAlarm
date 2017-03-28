@@ -28,10 +28,18 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 
 *///////////////////////////////////////////////////////////////
 
-#include "Arduino.h"
+
+#if (ARDUINO >= 100)
+    #include "Arduino.h"
+#else
+    #include "WProgram.h"
+#endif
+
 #include "WeeklyAlarm.h"
+
 #include <Time.h>
-#include <vector>
+#include <LinkedList.h>
+#include <ArduinoJson.h>
 
 int _lastAlarmCheck = millis();
 
@@ -57,15 +65,15 @@ Alarm::Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_cal
 ///////////////////////////////////////
       /*  weekly Alarm main class   */
 
-WeeklyAlarm::WeeklyAlarm(uint8_t numAlrm) : alarm(numAlrm, Alarm()){
+WeeklyAlarm::WeeklyAlarm(uint8_t numAlrm) : alarm(numAlrm,Alarm()){
 }
 
 void WeeklyAlarm::add(){
-  alarm.push_back(Alarm()); //push default value constructor in a new alarm
+  alarm.add(Alarm()); //push default value constructor in a new alarm
 }
 
 void WeeklyAlarm::add(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) ){
-  alarm.push_back(Alarm());
+  alarm.add(Alarm());
   int8_t addedAlarm = alarm.size()-1;//the alarm added is at the end of vector
   set(addedAlarm, type, almSwitch, wHour, wMin, (_callback));
 }
