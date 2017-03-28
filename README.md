@@ -4,7 +4,9 @@ weekday timer ( thermostat like scheduler )
 
 WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.
 
-Arduino time library needed as dependancy https://github.com/PaulStoffregen/Time
+dependancy:
+  Arduino time library needed https://github.com/PaulStoffregen/Time
+  LinkedList (use nitrof fork until merge): https://github.com/NitrofMtl/LinkedList/blob/NitrofMtl-patch-1/LinkedList.h
 
   Created on 26/06/15
    By Nitrof
