@@ -38,7 +38,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 #endif
 
 #include <Time.h>
-//#include <vector>
 #include <LinkedList.h>
 #include <ArduinoJson.h>
 
