@@ -1,5 +1,5 @@
 #include <TimeLib.h>
-#include <WeeklyAlarm.h>
+#include <weeklyAlarm.h>
 
     //create instance of alarm with 2 alarms
 WeeklyAlarm alarm(2); 

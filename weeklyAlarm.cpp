@@ -35,7 +35,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
     #include "WProgram.h"
 #endif
 
-#include "WeeklyAlarm.h"
+#include <weeklyAlarm.h>
 
 #include <Time.h>
 #include <LinkedList.h>
@@ -83,7 +83,7 @@ void WeeklyAlarm::set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8
   alarm[id].almSwitch = almSwitch;
   alarm[id].wHour = wHour;
   alarm[id].wMin = wMin;
-  alarm[id].callback =  _callback; 
+  alarm[id].callback =  _callback;
 }
 
 void WeeklyAlarm::set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin ){
@@ -173,9 +173,10 @@ String WeeklyAlarm::isOnOff(uint8_t id){
 }
 
 String WeeklyAlarm::weekType(uint8_t id){
-  String weekType[10] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
+  const String weekType[10] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
   uint8_t wType = alarm[id].type;
   return weekType[wType];
+  return "Sunday";
 }
 
 uint8_t WeeklyAlarm::almHour(uint8_t id){
@@ -197,7 +198,7 @@ void WeeklyAlarm::printAlarm(uint8_t id){ //use weekType, almHour and almMin for
 int8_t WeeklyAlarm::stringToWeekType(String weekTypeInput){
   String weekType[10] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
   int type= 0;
-  for(int8_t i = 0; i < sizeof(weekType); i++){
+  for(int8_t i = 0; i < 10; i++){
     if(weekTypeInput==weekType[i]) {
       type = i;
     }
@@ -210,19 +211,19 @@ bool WeeklyAlarm::stringToAlmSwitch(String OnOffInput){
   else return OFF;
 }
 
-  JsonObject& WeeklyAlarm::backupAlarm(int8_t id, JsonBuffer& jsonBuffer){
+JsonObject& WeeklyAlarm::backupAlarm(int8_t id, JsonBuffer& jsonBuffer){
     JsonObject& alarmBck = jsonBuffer.createObject();
     alarmBck["switch"] = alarm[id].almSwitch;
     alarmBck["type"] = alarm[id].type;
     alarmBck["hour"] = alarm[id]. wHour;
     alarmBck["minute"] = alarm[id].wMin;
-   /* alarmBck["callback"] = alarm[id].callback;*/
+    alarmBck["callback"] = alarm[id].callback;
    return alarmBck;
   }
 
-  void WeeklyAlarm::restoreAlarm(int8_t id, JsonObject& alarmBck){
+void WeeklyAlarm::restoreAlarm(int8_t id, JsonObject& alarmBck){
     alarm[id].almSwitch = alarmBck["switch"];
     alarm[id].type = alarmBck["type"];
     alarm[id].wHour = alarmBck["hour"];
     alarm[id].wMin = alarmBck["minute"];
-  }
+}
