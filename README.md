@@ -2,7 +2,7 @@
 weekday timer ( thermostat like scheduler )
 
 
-######WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.
+**WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.**
 
 ##dependancy:
   [Arduino time](library https://github.com/PaulStoffregen/Time)
@@ -14,7 +14,7 @@ weekday timer ( thermostat like scheduler )
     -Add print alarm by stream object reference:
     `void printAlarm(uint8_t, Stream&)  //alarm id, any class that inherit from stream`
 
-  ###**Created on 03/09/18**
+  ### **Created on 03/09/18**
   ### **By Nitrof**
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
