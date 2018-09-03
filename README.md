@@ -5,8 +5,10 @@ weekday timer ( thermostat like scheduler )
 **WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.**
 
 ##dependancy:
-  [Arduino time](library https://github.com/PaulStoffregen/Time)
-  [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
+
+  - [Arduino time library](https://github.com/PaulStoffregen/Time)
+
+  - [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
 
 ##  New on version 3.0:
     -Remove linkedList dependancy.
