@@ -38,19 +38,9 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 #endif
 
 #include <Time.h>
-#include <LinkedList.h>
 #include <ArduinoJson.h>
 
-#define SUNDAY 0
-#define MONDAY 1
-#define TUESDAY 2
-#define WEDNESDAY 3
-#define THURSDAY 4
-#define FRIDAY 5
-#define SATURSDAY 6
-#define WEEK 7
-#define WEEK_END 8
-#define ALL_DAYS 9
+enum alarmType {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY,SATURSDAY, WEEK,  WEEK_END, ALL_DAYS};
 
 #define ON 1
 #define OFF 0
@@ -59,16 +49,19 @@ class Alarm {
 public:
   Alarm();
   Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
-
+  Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int), int8_t wId );
   int8_t type;
   bool almSwitch;
   int8_t wHour;
   int8_t wMin;
   void (*callback)(int);
+  int8_t id;
+  Alarm *nextAlarm;
+  unsigned long target;
 };
 
 
-class WeeklyAlarm : public Alarm {
+class WeeklyAlarm {
 public:
   WeeklyAlarm(uint8_t numAlrm);
   void add();
@@ -86,18 +79,27 @@ public:
   uint8_t almHour(uint8_t id);
   uint8_t almMin(uint8_t id);
 
-  void printAlarm(uint8_t id);
+  
+  void printAlarm(uint8_t id, Stream &stream);
+  
 
   JsonObject& backupAlarm(int8_t id, JsonBuffer& jsonBuffer);
   void restoreAlarm(int8_t id, JsonObject& output);
 private:
-  LinkedList<Alarm> alarm;
+  Alarm *alarmHead;
+  int idIndex = 0;
 
-  bool nestedBool(bool b0, bool b1, bool b2, bool b3);  
   long _lastAlarmCheck = millis();
-  bool compareWeekDay(uint8_t type, uint8_t thisDay);
+
+  time_t WeeklyAlarm::getTimer(Alarm &alarm);
 
   int8_t stringToWeekType(String weekTypeInput);
   bool stringToAlmSwitch(String OnOffInput);
+
+  int8_t getDayToGo(uint8_t today, uint8_t target);
+  bool todaysTimeIsPast(TimeElements now, Alarm &alarm);
+  Alarm *getAlarmById(int id);
+
+  void printAlarm(Stream &stream, Alarm *alarm);
 };
 #endif

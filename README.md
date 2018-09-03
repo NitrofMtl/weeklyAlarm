@@ -1,15 +1,21 @@
-# weeklyAlarm
+# weeklyAlarm V3.0
 weekday timer ( thermostat like scheduler )
 
 
-WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.
+###WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.
 
-dependancy:
-  Arduino time library needed https://github.com/PaulStoffregen/Time
-  LinkedList (use nitrof fork until merge): https://github.com/NitrofMtl/LinkedList/blob/NitrofMtl-patch-1/LinkedList.h
+##dependancy:
+  [Arduino time](library https://github.com/PaulStoffregen/Time)
+  [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
 
-  Created on 26/06/15
-   By Nitrof
+##  New on version 3.0:
+    -Remove linkedList dependancy.
+    -Handler run with time_t object, faster execution.
+    -Add print alarm by stream object reference:
+    `void printAlarm(uint8_t, Stream&)  //alarm id, any class that inherit from stream`
+
+  ###**Created on 03/09/18**
+  ### **By Nitrof**
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
   this software and associated documentation files (the "Software"), to deal in
