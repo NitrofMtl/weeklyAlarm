@@ -14,6 +14,7 @@
   - Remove linkedList dependancy.
   - Handler run with time_t object, faster execution.
   - Add print alarm by stream object reference:
+  
   `void printAlarm(uint8_t, Stream&)  //alarm id, any class that inherit from stream`
 
   ### **Created on 03/09/18**
