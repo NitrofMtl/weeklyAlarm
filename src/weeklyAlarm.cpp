@@ -1,206 +1,216 @@
-/*
-WeeklyAlarm is a library inspired by a programmable thermostat with scalable memory and 4 modes.
-
-first mode is single day use, and is listed 0 to 6, corresponding to sunday to saturday.
-mode 7 is weekdays only (monday to friday). 
-mode 8 is weekend.
-mode 9 is the whole week.
-
-  Created on 26/06/15
-   By Nitrof
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-  this software and associated documentation files (the "Software"), to deal in
-  the Software without restriction, including without limitation the rights to
-  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-  the Software, and to permit persons to whom the Software is furnished to do so,
-  subject to the following conditions:
-
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-*///////////////////////////////////////////////////////////////
-
-#include <weeklyAlarm.h>
+#include <WeeklyAlarm.h>
 
 int _lastAlarmCheck = millis();
 
 ///////////////////////////////////////
-/**/          /*  alarm data class  */
-Alarm::Alarm(){
-  type = ALL_DAYS;
-  almSwitch = 0;
-  wHour = 0;
-  wMin = 0;
-  nextAlarm = NULL;
+
+AlarmObj::AlarmObj() : 
+  type(AlarmType::SUNDAY),
+  almSwitch(false),
+  wHour(0),
+  wMin(0),
+  nextAlarm(NULL),
+  target(0)
+{}
+
+void AlarmObj::set(AlarmType _type, bool _almSwitch, int8_t _wHour, int8_t _wMin){
+  type = _type;
+  almSwitch = _almSwitch;
+  wHour = _wHour;
+  wMin = _wMin;
+}
+JsonObject& AlarmObj::getJSON(JsonBuffer& jsonBuffer) {
+  JsonObject& alarmObj = jsonBuffer.createObject(); 
+  alarmObj["type"] = weekTypeToString(); //need strigtype
+  alarmObj["switch"] = isOnOff();  ///almSwitch; need is onoff
+  alarmObj["hour"] = wHour;
+  alarmObj["minute"] = wMin;
+  return alarmObj;
+  }
+
+void AlarmObj::parseJSON(JsonObject& alarmObj) {
+  almSwitch = OnOffToBool( alarmObj["switch"] );  
+  type = stringToWeekType( alarmObj["type"] );
+  wHour = alarmObj["hour"];
+  wMin = alarmObj["minute"];
 }
 
-Alarm::Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) ) :
-  type(type),
-  almSwitch(almSwitch),
-  wHour(wHour),
-  wMin(wMin),
-  callback(_callback),
-  nextAlarm(NULL)
-{
+char* AlarmObj::weekTypeToString() {
+  const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
+  return weekType[static_cast<uint8_t const>(type)];
 }
 
-Alarm::Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int), int8_t wId ) :
-  type(type),
-  almSwitch(almSwitch),
-  wHour(wHour),
-  wMin(wMin),
-  callback(_callback),
-  id(wId)
-{
+AlarmType AlarmObj::stringToWeekType(char* weekTypeInput) {
+  const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
+  AlarmType type;
+  for(int8_t i = 0; i < 10; i++){
+    if(strcmp(weekTypeInput, weekType[i]) == 0) {
+      type = (AlarmType)i;
+      return type;
+    }
+  }
+}
+
+char* AlarmObj::isOnOff() {
+  if(!almSwitch) return "OFF";
+  return "ON";
+}
+
+bool AlarmObj::OnOffToBool(char* _switch) {
+  if (strcmp(_switch,"ON") == 0) return true;
+  return false;
+}
+
+void AlarmObj::toggle() {
+  almSwitch = !almSwitch;
+}
+
+void AlarmObj::printTo(Stream &stream) {
+  stream.print("alarm type: ");
+  stream.print(weekTypeToString());
+  prettyPrintClock(wHour, wMin, stream);
+  TimeElements t;
+  breakTime(target, t);
+  stream.print(" alarm will fire at ");
+  const String dayOfWeek[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+  stream.print(dayOfWeek[t.Wday-1]);
+  stream.print(" ");
+  stream.print(t.Day);
+  stream.print(" ");
+  prettyPrintClock(t.Hour, t.Minute, stream);
+  stream.println();
+}
+
+void AlarmObj::prettyPrintClock(int hour, int minute, Stream &stream) {
+  if (hour < 10) stream.print(" ");
+  stream.print(hour);
+  stream.print(":");
+  if (minute < 10) stream.print("0");
+  stream.print(minute);
+}
+
+void Alarm::setCallback(void (*_callback)()) {
+  callback = _callback;
+}
+
+void Alarm::callbackHandler() {
+  if ( callback ) callback();
+}
+
+void AlarmInt::setCallback(void(*_callback)(int), uint8_t _callbackValue) {
+  callback = _callback;
+  callbackValue = _callbackValue;
+}
+
+void AlarmInt::callbackHandler() {
+  if ( callback ) callback(callbackValue);
 }
 
 /**/
 ///////////////////////////////////////
       /*  weekly Alarm main class   */
 
-WeeklyAlarm::WeeklyAlarm(uint8_t numAlrm) /*: alarm(numAlrm,Alarm())/*, alarmHead(&alarm[0])*/ {
-  alarmHead = new Alarm();
-  alarmHead->id = idIndex;
-  idIndex++;
-  Alarm *temp = alarmHead;
-  while ( idIndex < numAlrm ) {
-    temp->nextAlarm = new Alarm();
-    temp = temp->nextAlarm;
-    temp->id = idIndex;
-    idIndex++;
-  }
-}
+WeeklyAlarm::WeeklyAlarm() : alarmHead(NULL)
+{}
 
-void WeeklyAlarm::add(){
-  Alarm * alarm = alarmHead;
-  if (!alarmHead) {
-    alarmHead = new Alarm();
+void WeeklyAlarm::add(AlarmObj &alarm) {
+  alarm.target = getTimer(alarm);
+  if ( !alarmHead ) {
+    alarmHead = &alarm;
     return;
   }
-  
-  while (alarm->nextAlarm) alarm = alarm->nextAlarm;
-  alarm->nextAlarm = new Alarm();
-  
-  alarm->nextAlarm->id = idIndex;
-  idIndex++;
+  AlarmObj *alm = alarmHead;
+  while ( alm->nextAlarm ) alm = alm->nextAlarm;
+  alm->nextAlarm = &alarm;
 }
 
-void WeeklyAlarm::add(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) ){
-  add();
-  set(idIndex-1, type, almSwitch, wHour, wMin, (_callback));
-}
-
-void WeeklyAlarm::set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin ){
-  Alarm *alarm = getAlarmById(id);
-  alarm->type = type;
-  alarm->almSwitch = almSwitch;
-  alarm->wHour = wHour;
-  alarm->wMin = wMin;
-  alarm->id = id;
-  alarm->target = getTimer(*alarm); 
-  //printAlarm(Serial, alarm);
-}
-
-void WeeklyAlarm::set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) ){
-  set(id, type, almSwitch, wHour, wMin);
-  Alarm *alarm = getAlarmById(id);
-  alarm->callback =  _callback;
-}
-
-  //this set is use for web server parse
-void WeeklyAlarm::set(int8_t id, String strType, String strAlmSwitch, int8_t wHour, int8_t wMin){
-  set(id, stringToWeekType(strType), stringToAlmSwitch(strAlmSwitch), wHour, wMin);
-}
-
-Alarm *WeeklyAlarm::getAlarmById(int id) {
-  Alarm *temp = alarmHead;
-  for ( int i = 0; i < id; i++ ) {
-    temp = temp->nextAlarm;
+void WeeklyAlarm::remove(AlarmObj &alarm) {
+  if ( alarmHead == &alarm ) { //supress the first element
+    alarmHead = alarmHead->nextAlarm;
+    return;
   }
-  if (!temp) return NULL;
-  return temp;
+  AlarmObj *alm = alarmHead;
+
+  do {
+    if ( alm->nextAlarm = &alarm ) {
+      alm->nextAlarm = alm->nextAlarm->nextAlarm; //work even NULL
+      return;
+    }
+    alm = alm->nextAlarm;
+  } while (alm->nextAlarm);
 }
 
-time_t WeeklyAlarm::getTimer(Alarm &alarm) {
+time_t WeeklyAlarm::getTimer(AlarmObj &alarm) {
   TimeElements now;
   time_t timer = ::now();
   breakTime(timer,now);
 
-  //weeklyAlarm enum weekdays start with 0 and time with 1... have to offset it each time use both together
+  //weeklyAlarm enum weekdays start with 0 and timeLib with 1... have to offset it.
   int dayToGo = 0;
   //get how many day to go until the next alarm
-  int8_t type = alarm.type;
-  switch(type) { 
-    case SUNDAY:
-    case MONDAY:
-    case TUESDAY:
-    case WEDNESDAY:
-    case THURSDAY:
-    case FRIDAY:
-    case SATURSDAY:
-    if (type != now.Wday-1) {
-      dayToGo = getDayToGo(now.Wday-1, type);
+  int8_t type = static_cast<uint8_t>(alarm.type) +1; //+1 to fit timeLib 
+  switch(alarm.type) { 
+    case AlarmType::SUNDAY:
+    case AlarmType::MONDAY:
+    case AlarmType::TUESDAY:
+    case AlarmType::WEDNESDAY:
+    case AlarmType::THURSDAY:
+    case AlarmType::FRIDAY:
+    case AlarmType::SATURSDAY:
+    if (type != now.Wday) {
+      dayToGo = getDayToGo(now.Wday, type);
       break;
     }
     if ( todaysTimeIsPast(now, alarm) ) {
       dayToGo = 7;
-      break;
     }
     break;
 
-    case WEEK: 
+    case AlarmType::WEEK: 
     {
       int targetDay = 0;
-      if ( now.Wday-1 < MONDAY || now.Wday-1 > FRIDAY ) {
-        targetDay = MONDAY;
-        dayToGo = getDayToGo(now.Wday-1, targetDay);
+      if ( now.Wday < dowMonday || now.Wday > dowFriday ) {
+        targetDay = dowMonday;
+        dayToGo = getDayToGo(now.Wday, targetDay);
         break;
       }
       if ( todaysTimeIsPast(now, alarm) ) {
-        targetDay = now.Wday; //mean +1 day
+        targetDay = now.Wday+1;
       } else {
-        targetDay = now.Wday-1;
+        targetDay = now.Wday;
       } 
-      if ( targetDay > FRIDAY ) targetDay = MONDAY;
-      dayToGo = getDayToGo(now.Wday-1, targetDay);
+      if ( targetDay > dowFriday ) targetDay = dowMonday;
+      dayToGo = getDayToGo(now.Wday, targetDay);
       break;
     }
 
-    case WEEK_END: 
+    case AlarmType::WEEK_END: 
     {
       int targetDay = 0;
-      if ( now.Wday-1 <= MONDAY && now.Wday-1 >= FRIDAY ) {
-        targetDay = SATURSDAY;
-        dayToGo = getDayToGo(now.Wday-1, targetDay);
+      if ( now.Wday <= dowMonday && now.Wday >= dowFriday ) {
+        targetDay = dowSaturday;
+        dayToGo = getDayToGo(now.Wday, targetDay);
         break;
       }
-      targetDay = now.Wday-1;
+      targetDay = now.Wday;
       if ( todaysTimeIsPast(now, alarm) ) {
         targetDay++;
       }
-      if ( targetDay > SATURSDAY ) targetDay = SUNDAY;
-      if ( targetDay > SUNDAY ) targetDay = SATURSDAY;
-      dayToGo = getDayToGo(now.Wday-1, targetDay);
+      if ( targetDay > dowSaturday ) targetDay = dowSunday;
+      if ( targetDay > dowSunday ) targetDay = dowSaturday;
+      dayToGo = getDayToGo(now.Wday, targetDay);
       break;
     }
 
-    case ALL_DAYS: 
+    case AlarmType::ALL_DAYS: 
     {
       int targetDay = 0;
-      targetDay = now.Wday-1;   
+      targetDay = now.Wday;   
       if ( todaysTimeIsPast(now, alarm) ) {
-        targetDay = targetDay +1;
+        targetDay++;
       }    
-      if ( targetDay > SATURSDAY ) targetDay = SUNDAY;
-      dayToGo = getDayToGo(now.Wday-1, targetDay);
+      if ( targetDay > dowSaturday ) targetDay = dowSunday;
+      dayToGo = getDayToGo(now.Wday, targetDay);
     }    
     break;    
   }
@@ -210,6 +220,7 @@ time_t WeeklyAlarm::getTimer(Alarm &alarm) {
   timer += dayToGo*SECS_PER_DAY;
   timer += hourToGo*SECS_PER_HOUR;
   timer += minuteTogo*SECS_PER_MIN;
+  //prettyPrintTime(timer, Serial);
   return timer;
 
 }
@@ -219,8 +230,9 @@ int8_t WeeklyAlarm::getDayToGo(uint8_t today, uint8_t target) {
   return target - today;
 }
 
-bool WeeklyAlarm::todaysTimeIsPast(TimeElements now, Alarm &alarm) {
-  if ( now.Hour > alarm.wHour || (now.Hour == alarm.wHour && now.Minute >= alarm.wMin) ) return true;
+bool WeeklyAlarm::todaysTimeIsPast(TimeElements now, AlarmObj &alarm) {
+  if ( now.Hour > alarm.wHour ) return true;
+  if ( now.Hour == alarm.wHour && now.Minute >= alarm.wMin) return true;
   return false;
 }
 
@@ -229,15 +241,12 @@ void WeeklyAlarm::handler(){// realtime monitoring if any alarm have to be trigg
   if  ( !(millis() >= (_lastAlarmCheck + 60000)) ){
     return;  // check every 1 minute
   }
-
-  Alarm *alarmList = alarmHead;
+  AlarmObj *alarmList = alarmHead;
   while (alarmList) {
     if ( now() >= alarmList->target ) { //if it is time
-      if ( alarmList->almSwitch ) {
-      if ( alarmList->callback ) alarmList->callback(alarmList->id); //do callback
-      }
+      if ( alarmList->almSwitch ) alarmList->callbackHandler();
       alarmList->target = getTimer(*alarmList); //set the next time
-      //printAlarm(Serial, alarmList);
+      //alarmList->printTo(Serial);
     }
     alarmList = alarmList->nextAlarm;   
   }
@@ -245,97 +254,18 @@ void WeeklyAlarm::handler(){// realtime monitoring if any alarm have to be trigg
   _lastAlarmCheck = millis();
 }
 
-void WeeklyAlarm::toggle(uint8_t id){
-  Alarm *alarm = getAlarmById(id);
-  alarm->almSwitch = !alarm->almSwitch;
-}
-
-String WeeklyAlarm::isOnOff(uint8_t id){
-  Alarm *alarm = getAlarmById(id);
-  if(!alarm->almSwitch) return "OFF";
-  return "ON";
-}
-
-String WeeklyAlarm::weekType(uint8_t id){
-  const String weekType[10] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
-  Alarm *alarm = getAlarmById(id);
-  uint8_t wType = alarm->type;
-  return weekType[wType];
-}
-
-uint8_t WeeklyAlarm::almHour(uint8_t id){
-  Alarm *alarm = getAlarmById(id);
-  return alarm->wHour;
-}
-
-uint8_t WeeklyAlarm::almMin(uint8_t id){
-  Alarm *alarm = getAlarmById(id);
-  return alarm->wMin;
-}
-
-void WeeklyAlarm::printAlarm(Stream &stream, Alarm *alarm){ //use weekType, almHour and almMin for troubleshoot and for JSON object for web server
-  if(!alarm) {
-    stream.println("No alarm on this id!!!");
-    return;
-  }
-  stream.print("alarm type: ");
-  stream.print(alarm->type);
-  stream.print("=> ");
-  const String weekType[10] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
-  stream.print(weekType[alarm->type]);
-  stream.print(" ");
-  stream.print(alarm->wHour);
-  stream.print(":");
-  stream.print(alarm->wMin);
+void WeeklyAlarm::prettyPrintTime(time_t time, Stream &stream) {
   TimeElements t;
-  breakTime(alarm->target, t);
-  stream.print(" alarm will fire at ");
-  stream.print(weekType[t.Wday-1]);
+  breakTime(time, t);
+  const String weekType[10] {"invalid", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+  AlarmObj::prettyPrintClock(t.Hour, t.Minute, stream);
+  stream.print(" ");
+  stream.print(weekType[t.Wday]);
   stream.print(" ");
   stream.print(t.Day);
-  stream.print(" ");
-  stream.print(t.Hour);
-  stream.print(":");
-  stream.println(t.Minute);
+  stream.print("/");
+  stream.print(t.Month); 
+  stream.print("/");
+  stream.print(t.Year+1970); 
+  stream.println(); 
 }
-
-void WeeklyAlarm::printAlarm(uint8_t id, Stream &stream){
-  Alarm *alarm = getAlarmById(id);
-  printAlarm(stream, alarm);
-}
-
-int8_t WeeklyAlarm::stringToWeekType(String weekTypeInput){
-  String weekType[10] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
-  int type= 0;
-  for(int8_t i = 0; i < 10; i++){
-    if(weekTypeInput==weekType[i]) {
-      type = i;
-    }
-  }
-  return type;
-}
-
-bool WeeklyAlarm::stringToAlmSwitch(String OnOffInput){
-  if(OnOffInput=="ON") return ON;
-  else return OFF;
-}
-
-JsonObject& WeeklyAlarm::backupAlarm(int8_t id, JsonBuffer& jsonBuffer){
-  JsonObject& alarmBck = jsonBuffer.createObject();
-  Alarm *alarm = getAlarmById(id); 
-  alarmBck["switch"] = alarm->almSwitch; //depricated
-  alarmBck["type"] = alarm->type;
-  alarmBck["hour"] = alarm->wHour;
-  alarmBck["minute"] = alarm->wMin;
-  alarmBck["callback"] = alarm->callback;
-  return alarmBck;
-  }
-
-void WeeklyAlarm::restoreAlarm(int8_t id, JsonObject& alarmBck){
-  Alarm *alarm = getAlarmById(id);
-  alarm->almSwitch = alarmBck["switch"];  
-  alarm->type = alarmBck["type"];
-  alarm->wHour = alarmBck["hour"];
-  alarm->wMin = alarmBck["minute"];
-}
-

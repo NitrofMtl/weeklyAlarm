@@ -1,17 +1,27 @@
-# weeklyAlarm V3.0
+# weeklyAlarm V4.0
 ## **weekday timer ( thermostat like scheduler )**
 
 
 **WeeklyAlarm is a timer to trigger daily at the same time. It has been designed to be used like a numeric thermostat scheduler.**
 
-## dependancy:
+## dependency:
 
   - [Arduino time library](https://github.com/PaulStoffregen/Time)
 
   - [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
 
-##  New on version 3.0:
-  - Remove linkedList dependancy.
+## New on version 4.0
+  - Strong typing for alarm type
+  - now support building 2 kind of callback (*void)() and (*void)(int)
+  - Enable inheritance with AlarmObj to create custom callback
+  - better ArduinoJSON integration
+  - general simper utilization:
+
+  ###  If functionality is pretty the same as v3.0 and previous, usage is not the same and is not directly compatible. See the example to see change.
+
+
+###  New on version 3.0:
+  - Remove linkedList dependency.
   - Handler run with time_t object, faster execution.
   - Add print alarm by stream object reference:
   

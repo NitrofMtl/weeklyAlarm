@@ -31,77 +31,76 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 #ifndef WeeklyAlarm_h
 #define WeeklyAlarm_h
 
-#if (ARDUINO >= 100)
-    #include "Arduino.h"
-#else
-    #include "WProgram.h"
-#endif
-
+#include "Arduino.h"
 #include <Time.h>
 #include <ArduinoJson.h>
 
-enum alarmType {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY,SATURSDAY, WEEK,  WEEK_END, ALL_DAYS};
+enum class AlarmType : uint8_t {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY,SATURSDAY, WEEK,  WEEK_END, ALL_DAYS};
 
 #define ON 1
 #define OFF 0
 
-class Alarm {
+class AlarmObj {
 public:
-  Alarm();
-  Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
-  Alarm(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int), int8_t wId );
+  AlarmObj();
+  void set(AlarmType _type, bool _almSwitch, int8_t _wHour, int8_t _wMin);
+  JsonObject& getJSON(JsonBuffer& jsonBuffer);
+  void parseJSON(JsonObject& alarmObj);
+  char* weekTypeToString();
+  AlarmType stringToWeekType(char* weekTypeInput);
+  char* AlarmObj::isOnOff();
+  bool OnOffToBool(char* _switch);
+  void toggle();
+  void printTo(Stream &stream);
+protected:
+
 private:
   friend class WeeklyAlarm;
-  int8_t type;
+  AlarmType type;
   bool almSwitch;
   int8_t wHour;
   int8_t wMin;
-  void (*callback)(int);
-  int8_t id;
-  Alarm *nextAlarm;
+  virtual void callbackHandler()=0;
+  AlarmObj *nextAlarm;
   unsigned long target;
+  static void prettyPrintClock(int hour, int minute, Stream &stream);
 };
 
+///////////////////////////////////////////
+class Alarm : public AlarmObj {
+public:
+  void setCallback(void (*_callback)());
+private:
+  void callbackHandler();
+  void (*callback)();
+};
+
+class AlarmInt : public AlarmObj {
+public:
+  void setCallback(void (*_callback)(int), uint8_t _callbackValue);
+private:
+  void callbackHandler();
+  void (*callback)(int);
+  uint8_t callbackValue = 0;
+};
+//////////////////////////////////////////
 
 class WeeklyAlarm {
 public:
-  WeeklyAlarm(uint8_t numAlrm);
-  void add();
-  void add(int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
-  void set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin, void (*_callback)(int) );
-  void set(int8_t id, int8_t type, bool almSwitch, int8_t wHour, int8_t wMin ); //for backup restore
-  void set(int8_t id, String strType, String strAlmSwitch, int8_t wHour, int8_t wMin); //this set is for web request input
-
+  WeeklyAlarm();
+  void add(AlarmObj &alarm);
+  void remove(AlarmObj &alarm);
   void handler();
-  void toggle(uint8_t id);
+//those 3 to check
+  //void printAlarm(AlarmObj *alarm, Stream &stream);
+  void prettyPrintTime(time_t time, Stream &stream);
+  //void prettyPrintClock(int hour, int minute, Stream &stream);
 
-
-  String isOnOff(uint8_t id);
-  String weekType(uint8_t id);
-  uint8_t almHour(uint8_t id);
-  uint8_t almMin(uint8_t id);
-
-  
-  void printAlarm(uint8_t id, Stream &stream);
-  
-
-  JsonObject& backupAlarm(int8_t id, JsonBuffer& jsonBuffer);
-  void restoreAlarm(int8_t id, JsonObject& output);
 private:
-  Alarm *alarmHead;
-  int idIndex = 0;
-
+  AlarmObj *alarmHead;
   long _lastAlarmCheck = millis();
-
-  time_t getTimer(Alarm &alarm);
-
-  int8_t stringToWeekType(String weekTypeInput);
-  bool stringToAlmSwitch(String OnOffInput);
-
+  time_t getTimer(AlarmObj &alarm);
   int8_t getDayToGo(uint8_t today, uint8_t target);
-  bool todaysTimeIsPast(TimeElements now, Alarm &alarm);
-  Alarm *getAlarmById(int id);
-
-  void printAlarm(Stream &stream, Alarm *alarm);
+  bool todaysTimeIsPast(TimeElements now, AlarmObj &alarm);  
 };
 #endif
