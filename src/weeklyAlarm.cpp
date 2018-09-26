@@ -29,13 +29,15 @@ JsonObject& AlarmObj::getJSON(JsonBuffer& jsonBuffer) {
   }
 
 void AlarmObj::parseJSON(JsonObject& alarmObj) {
-  almSwitch = OnOffToBool( alarmObj["switch"] );  
-  type = stringToWeekType( alarmObj["type"] );
+  char _switch[] = {alarmObj["switch"]};
+  almSwitch = OnOffToBool( _switch ); 
+  char _type[] = {alarmObj["type"]};
+  type = stringToWeekType( _type );
   wHour = alarmObj["hour"];
   wMin = alarmObj["minute"];
 }
 
-char* AlarmObj::weekTypeToString() {
+const char* AlarmObj::weekTypeToString() {
   const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
   return weekType[static_cast<uint8_t const>(type)];
 }

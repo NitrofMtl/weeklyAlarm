@@ -46,9 +46,9 @@ public:
   void set(AlarmType _type, bool _almSwitch, int8_t _wHour, int8_t _wMin);
   JsonObject& getJSON(JsonBuffer& jsonBuffer);
   void parseJSON(JsonObject& alarmObj);
-  char* weekTypeToString();
+  const char* weekTypeToString();
   AlarmType stringToWeekType(char* weekTypeInput);
-  char* AlarmObj::isOnOff();
+  char* isOnOff();
   bool OnOffToBool(char* _switch);
   void toggle();
   void printTo(Stream &stream);
