@@ -29,26 +29,25 @@ JsonObject& AlarmObj::getJSON(JsonBuffer& jsonBuffer) {
   }
 
 void AlarmObj::parseJSON(JsonObject& alarmObj) {
+  //alarmObj.prettyPrintTo(Serial);
   char _switch[] = {alarmObj["switch"]};
-  almSwitch = OnOffToBool( _switch ); 
-  char _type[] = {alarmObj["type"]};
+  almSwitch = OnOffToBool( _switch );
+  const char* _type = alarmObj["type"];
   type = stringToWeekType( _type );
   wHour = alarmObj["hour"];
   wMin = alarmObj["minute"];
 }
 
 const char* AlarmObj::weekTypeToString() {
-  const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
+  const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Weekend", "All days" };
   return weekType[static_cast<uint8_t const>(type)];
 }
 
-AlarmType AlarmObj::stringToWeekType(char* weekTypeInput) {
-  const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Week end", "All days" };
-  AlarmType type;
+AlarmType AlarmObj::stringToWeekType(const char* weekTypeInput) {
+  const char* weekType[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Week", "Weekend", "All days" };
   for(int8_t i = 0; i < 10; i++){
     if(strcmp(weekTypeInput, weekType[i]) == 0) {
-      type = (AlarmType)i;
-      return type;
+      return AlarmType(i);
     }
   }
 }

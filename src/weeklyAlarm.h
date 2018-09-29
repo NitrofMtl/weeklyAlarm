@@ -47,7 +47,7 @@ public:
   JsonObject& getJSON(JsonBuffer& jsonBuffer);
   void parseJSON(JsonObject& alarmObj);
   const char* weekTypeToString();
-  AlarmType stringToWeekType(char* weekTypeInput);
+  AlarmType stringToWeekType(const char* weekTypeInput);
   char* isOnOff();
   bool OnOffToBool(char* _switch);
   void toggle();
