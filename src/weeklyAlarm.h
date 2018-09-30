@@ -91,14 +91,11 @@ public:
   void add(AlarmObj &alarm);
   void remove(AlarmObj &alarm);
   void handler();
-//those 3 to check
-  //void printAlarm(AlarmObj *alarm, Stream &stream);
   void prettyPrintTime(time_t time, Stream &stream);
-  //void prettyPrintClock(int hour, int minute, Stream &stream);
 
 private:
   AlarmObj *alarmHead;
-  long _lastAlarmCheck = millis();
+  long _lastAlarmCheck = 0;
   time_t getTimer(AlarmObj &alarm);
   int8_t getDayToGo(uint8_t today, uint8_t target);
   bool todaysTimeIsPast(TimeElements now, AlarmObj &alarm);  

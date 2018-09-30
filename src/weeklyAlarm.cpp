@@ -1,7 +1,5 @@
 #include <WeeklyAlarm.h>
 
-int _lastAlarmCheck = millis();
-
 ///////////////////////////////////////
 
 AlarmObj::AlarmObj() : 
