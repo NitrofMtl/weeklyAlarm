@@ -49,7 +49,7 @@ public:
   const char* weekTypeToString();
   AlarmType stringToWeekType(const char* weekTypeInput);
   char* isOnOff();
-  bool OnOffToBool(char* _switch);
+  bool OnOffToBool(const char* _switch);
   void toggle();
   void printTo(Stream &stream);
 protected:

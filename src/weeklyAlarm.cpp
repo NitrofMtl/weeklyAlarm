@@ -23,12 +23,13 @@ JsonObject& AlarmObj::getJSON(JsonBuffer& jsonBuffer) {
   alarmObj["switch"] = isOnOff();  ///almSwitch; need is onoff
   alarmObj["hour"] = wHour;
   alarmObj["minute"] = wMin;
+  //alarmObj.prettyPrintTo(Serial);
   return alarmObj;
   }
 
 void AlarmObj::parseJSON(JsonObject& alarmObj) {
   //alarmObj.prettyPrintTo(Serial);
-  char _switch[] = {alarmObj["switch"]};
+  const char* _switch = alarmObj["switch"];
   almSwitch = OnOffToBool( _switch );
   const char* _type = alarmObj["type"];
   type = stringToWeekType( _type );
@@ -55,7 +56,7 @@ char* AlarmObj::isOnOff() {
   return "ON";
 }
 
-bool AlarmObj::OnOffToBool(char* _switch) {
+bool AlarmObj::OnOffToBool(const char* _switch) {
   if (strcmp(_switch,"ON") == 0) return true;
   return false;
 }
