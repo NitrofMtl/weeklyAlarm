@@ -132,7 +132,7 @@ void WeeklyAlarm::remove(AlarmObj &alarm) {
   AlarmObj *alm = alarmHead;
 
   do {
-    if ( alm->nextAlarm = &alarm ) {
+    if ( alm->nextAlarm == &alarm ) {
       alm->nextAlarm = alm->nextAlarm->nextAlarm; //work even NULL
       return;
     }
