@@ -35,7 +35,7 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 #include <Time.h>
 #include <ArduinoJson.h>
 
-enum class AlarmType : uint8_t {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY,SATURSDAY, WEEK,  WEEK_END, ALL_DAYS};
+enum class AlarmType : uint8_t {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY,SATURDAY, WEEK,  WEEK_END, ALL_DAYS};
 
 #define ON 1
 #define OFF 0
@@ -48,7 +48,7 @@ public:
   void parseJSON(JsonObject& alarmObj);
   const char* weekTypeToString();
   AlarmType stringToWeekType(const char* weekTypeInput);
-  char* isOnOff();
+  char const *isOnOff();
   bool OnOffToBool(const char* _switch);
   void toggle();
   void printTo(Stream &stream);
@@ -95,7 +95,7 @@ public:
 
 private:
   AlarmObj *alarmHead;
-  long _lastAlarmCheck = 0;
+  unsigned long _lastAlarmCheck = 0;
   time_t getTimer(AlarmObj &alarm);
   int8_t getDayToGo(uint8_t today, uint8_t target);
   bool todaysTimeIsPast(TimeElements now, AlarmObj &alarm);  

@@ -51,7 +51,7 @@ AlarmType AlarmObj::stringToWeekType(const char* weekTypeInput) {
   }
 }
 
-char* AlarmObj::isOnOff() {
+char const *AlarmObj::isOnOff() {
   if(!almSwitch) return "OFF";
   return "ON";
 }
@@ -156,7 +156,7 @@ time_t WeeklyAlarm::getTimer(AlarmObj &alarm) {
     case AlarmType::WEDNESDAY:
     case AlarmType::THURSDAY:
     case AlarmType::FRIDAY:
-    case AlarmType::SATURSDAY:
+    case AlarmType::SATURDAY:
     if (type != now.Wday) {
       dayToGo = getDayToGo(now.Wday, type);
       break;
