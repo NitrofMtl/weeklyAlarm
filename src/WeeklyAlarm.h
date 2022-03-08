@@ -1,10 +1,7 @@
 /*
-WeeklyAlarm is a library inspired by a programmable thermostat with scalable memory and 4 modes.
+WeeklyAlarm is a library inspired by a programmable thermostat witch will trigger
+an alarm each enabled day at a specific time.
 
-first mode is single day use, and is listed 0 to 6, corresponding to sunday to saturday.
-mode 7 is weekdays only (monday to friday). 
-mode 8 is weekend.
-mode 9 is the whole week.
 
   Created on 26/06/15
    By Nitrof
@@ -32,72 +29,233 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 #define WeeklyAlarm_h
 
 #include "Arduino.h"
-#include <Time.h>
-#include <ArduinoJson.h>
 
-enum class AlarmType : uint8_t {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY,SATURDAY, WEEK,  WEEK_END, ALL_DAYS};
+#include "Time.h"
+//include Time this way if you using PlatformIo
+//#include "../../Time/TimeLib.h"
 
-#define ON 1
-#define OFF 0
+#define ALARM_ENABLE_MASK (timeDayOfWeek_t)0
 
-class AlarmObj {
-public:
-  AlarmObj();
-  void set(AlarmType _type, bool _almSwitch, int8_t _wHour, int8_t _wMin);
-  JsonObject& getJSON(JsonBuffer& jsonBuffer);
-  void parseJSON(JsonObject& alarmObj);
-  const char* weekTypeToString();
-  AlarmType stringToWeekType(const char* weekTypeInput);
-  char const *isOnOff();
-  bool OnOffToBool(const char* _switch);
-  void toggle();
-  void printTo(Stream &stream);
-protected:
+template<class Callable>
+class Alarm;
+class WeeklyAlarm;
 
-private:
+class AlarmNode {
+  protected:
+  AlarmNode();
+  virtual ~AlarmNode() = default;
   friend class WeeklyAlarm;
-  AlarmType type;
-  bool almSwitch;
-  int8_t wHour;
-  int8_t wMin;
-  virtual void callbackHandler()=0;
-  AlarmObj *nextAlarm;
-  unsigned long target;
-  static void prettyPrintClock(int hour, int minute, Stream &stream);
+  bool reset();
+  bool isEnable();
+  int8_t getDayToGo(TimeElements &now);
+  bool todaysTimeIsPast(TimeElements &now, TimeElements &alrm) const; 
+  uint8_t dayEnable;
+  virtual void callback() = 0; 
+  AlarmNode *nextAlarm;
+  time_t target;
 };
 
 ///////////////////////////////////////////
-class Alarm : public AlarmObj {
-public:
-  void setCallback(void (*_callback)());
-private:
-  void callbackHandler();
-  void (*callback)();
+
+/**
+ * @brief 
+ * 
+ * @tparam Callable 
+ * could be : function pointer, functor or lambda with or without capture 
+ */
+template<class Callable>
+class Alarm : public AlarmNode {
+  Alarm (Callable callable) : AlarmNode(), callable(callable) {}
+  ~Alarm() override = default;
+  friend class WeeklyAlarm;
+  Callable callable;
+  void callback() override { callable(); }
 };
 
-class AlarmInt : public AlarmObj {
-public:
-  void setCallback(void (*_callback)(int), uint8_t _callbackValue);
-private:
-  void callbackHandler();
-  void (*callback)(int);
-  uint8_t callbackValue = 0;
-};
+
 //////////////////////////////////////////
 
-class WeeklyAlarm {
+/**
+ * @brief  Day of week timer
+ * 
+ */
+class WeeklyAlarm
+{
 public:
+/**
+ * @brief Construct a new Weekly Alarm object
+ * 
+ */
   WeeklyAlarm();
-  void add(AlarmObj &alarm);
-  void remove(AlarmObj &alarm);
-  void handler();
-  void prettyPrintTime(time_t time, Stream &stream);
+/**
+ * @brief 
+ * set the callback of the alarm
+ * could be : function pointer, functor or lambda with or without capture
+ * @tparam Callable 
+ * @param callable 
+ * @return WeeklyAlarm& 
+ */
+  template<class Callable>
+  WeeklyAlarm& add(Callable callable) {
+    alarm = new Alarm<Callable>(callable);
+    if ( !alarmHead ) {
+      alarmHead = alarm;
+      return *this;
+    }
+    AlarmNode *temp = alarmHead;
+    while ( temp->nextAlarm ) temp = temp->nextAlarm;
+    temp->nextAlarm = alarm;
+    return *this;
+  }
+
+/**
+ * @brief 
+ * set the time of day that alarm will be trigged
+ * @param hour 
+ * @param min
+ * @return WeeklyAlarm& 
+ */
+  WeeklyAlarm& set(uint8_t hour, uint8_t min);
+
+/**
+ * @brief 
+ * put the day of week (timeDayofWeek_t) the you want to enable
+ * @param day 
+ * @return WeeklyAlarm& 
+ */
+  WeeklyAlarm& dayEnable(timeDayOfWeek_t day);
+    /**
+ * @brief 
+ * put all day of week (timeDayofWeek_t) the you want to enable
+ * @param day 
+ * @return WeeklyAlarm& 
+ */
+  template<typename ... Days>
+  WeeklyAlarm& dayEnable(timeDayOfWeek_t day, Days ... days) {
+    dayEnable(day);
+    dayEnable(static_cast<timeDayOfWeek_t>(days)...);
+    return *this;
+  } 
+
+/**
+ * @brief 
+ * put the day of week (timeDayofWeek_t) the you want to disable
+ * @param day
+ * @return WeeklyAlarm& 
+ */
+  WeeklyAlarm& dayDisable(timeDayOfWeek_t day);
+  /**
+ * @brief 
+ * put all day of week (timeDayofWeek_t) the you want to disable
+ * @param day
+ * @return WeeklyAlarm& 
+ */
+  template<typename ... Days>
+  WeeklyAlarm& dayDisable(timeDayOfWeek_t day, Days ... days) {
+    dayDisable(day);
+    dayDisable(static_cast<timeDayOfWeek_t>(days)...);
+    return *this;
+  } 
+  
+  /**
+ * @brief 
+ * put the day of week (timeDayofWeek_t) the you want to toggle on/off
+ * @param day
+ * @return WeeklyAlarm& 
+ */
+  WeeklyAlarm& dayToggle(timeDayOfWeek_t day);
+    /**
+ * @brief 
+ * put all day of week (timeDayofWeek_t) the you want to toggle on/off
+ * @param day 
+
+ * @return WeeklyAlarm& 
+ */
+  template<typename ... Rest>
+  WeeklyAlarm& dayToggle(timeDayOfWeek_t day, Rest ... rest ) { 
+    dayToggle(day);
+    dayToggle(static_cast<timeDayOfWeek_t>(rest)...);
+    return *this;
+  }
+
+/**
+ * @brief 
+ * enable the alarm (days enable have to be set first)
+ */
+  void alarmOn();
+  /**
+   * @brief 
+   * Disable the alarm, other parameter kept untouch
+   */
+  void alarmOff();
+  /**
+   * @brief 
+   * Toggle On/Off the alarm
+   */
+  void alarmToggle();
+  /**
+   * @brief 
+   * Remove the alarm, all parameters and callback will be deleted
+   */
+  void remove();
+  /**
+   * @brief 
+   * Main handler, call the function every minute to monitor when a callback is to be trigged
+   */
+  static void handler();
+  /**
+   * @brief 
+   * print nice format of time_t object
+   * @param time
+   * @param stream 
+   * 
+   */
+  static void prettyPrintTime(time_t time, Stream &stream);
+  /**
+   * @brief 
+   * print nice format of alarm setup
+   * @param stream 
+   * print nice format of alarm setup
+   */
+  void prettyPrintAlarm(Stream &stream);
+  /**
+   * @brief 
+   * check if alarm is enable
+   * @return true
+   * @return false 
+   */
+  bool isEnable();
+  /**
+   * @brief 
+   * check if a specific day is active on an the alarm
+   * @param day 
+   * 
+   * @return true 
+   * @return false 
+   */
+  bool isDayEnable(timeDayOfWeek_t day);
+
+  /**
+   * @brief Get the Days Enable object flag
+   * bit 1 to 7 = dowSunday to dowSaturday, bit 0 is for alarm enable flag
+   * @return uint8_t 
+   */
+  uint8_t getDaysEnable() const {
+    return alarm->dayEnable;
+  }
+
+  /**
+   * @brief Build a JSON string of the alarm settings
+   * 
+   * @return const char* 
+   */
+  String toJSON();
 
 private:
-  AlarmObj *alarmHead;
-  unsigned long _lastAlarmCheck = 0;
-  time_t getTimer(AlarmObj &alarm);
-  int8_t getDayToGo(uint8_t today, uint8_t target);
-  bool todaysTimeIsPast(TimeElements now, AlarmObj &alarm);  
+  static AlarmNode *alarmHead;
+  AlarmNode *alarm;
+  static void prettyPrintClock(int hour, int minute, Stream &stream);
+  bool isAlarm();
+
 };
 #endif

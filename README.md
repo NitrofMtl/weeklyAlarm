@@ -1,4 +1,4 @@
-# weeklyAlarm V4.0
+# weeklyAlarm V5.0
 ## **weekday timer ( thermostat like scheduler )**
 
 
@@ -8,25 +8,20 @@
 
   - [Arduino time library](https://github.com/PaulStoffregen/Time)
 
-  - [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
+  - ~~[ArduinoJson](https://github.com/bblanchon/ArduinoJson)~~
 
-## New on version 4.0
-  - Strong typing for alarm type
-  - now support building 2 kind of callback (*void)() and (*void)(int)
-  - Enable inheritance with AlarmObj to create custom callback
-  - better ArduinoJSON integration
-  - general simper utilization:
+## New on version 5.0
+  - Change callback from void* to template: argument support void*, functor and lambda with capture
+  - Change weektype for individual days enable function
+  - Days selection are made with Time.h timeDayOfWeek_t
+  - Setup function have been split and change for WeeklyAlarm&, so the can be call daisy chain
+  - Control by string have been removed
+  - ArduinoJson dependency have been remove only an build-in JSON getAlarm remain
+  - API have been mostly redesign, look at the example for details
 
-  ###  If functionality is pretty the same as v3.0 and previous, usage is not the same and is not directly compatible. See the example to see change.
-
-
-###  New on version 3.0:
-  - Remove linkedList dependency.
-  - Handler run with time_t object, faster execution.
-  - Add print alarm by stream object reference:
   
-
-  ### **Created on 03/09/18**
+  ### **Version 5.0 07/03/2022**
+  ### **Created on 03/09/2018**
   ### **By Nitrof**
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of
