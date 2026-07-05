@@ -1,6 +1,11 @@
 #include <Arduino.h>
 
+#ifndef __NEWLIB__ //stm32
 #include <TimeLib.h>
+#else
+#include <sys/time.h> //stm32
+#endif
+
 
 #include "WeeklyAlarm.h"
 
@@ -39,9 +44,22 @@ const char* message = "This message have been send by lambda function";
 void setup() {
   Serial.begin(9600);
   Serial.println("start");
-  //setTime( hr, min, sec, day,  month,  yr);
-  setTime(11, 24, 0, 12, 9, 2018);  
 
+  //manual dummy time for the example.
+  //setTime( hr, min, sec, day,  month,  yr);
+  WA_TimeElements now;
+  now.tm_year = 2018;
+  now.tm_mon = 9;
+  now.tm_mday = 12;
+  now.tm_hour = 11;
+  now.tm_min = 24;
+  time_t epoch = WA_MAKETIME(now); 
+#ifdef __NEWLIB__ //stm32 example
+  struct timeval tv = { epoch, 0 };
+  settimeofday(&tv, nullptr);
+#else //timeLib.h
+  setTime(now);  
+#endif
   // add( callable ) : set the callback of the alarm could be : function pointer, functor or lambda with or without capture
   // dayEnable( timeDayOfWeek_t... ) : put all days of week (timeDayofWeek_t) the you want to enable
   // set ( hour, minute ) : set the time of day that alarm will be trigged
@@ -85,7 +103,7 @@ void setup() {
   
   Serial.print("Time set:   ");
   //print nice format of time_t object
-  WeeklyAlarm::prettyPrintTime(now(), Serial);
+  WeeklyAlarm::prettyPrintTime(WA_NOW(), Serial);
   Serial.print("Alarm1 set: ");
   // prettyPrintAlarm( Stream ) : print nice format of alarm setup
   alarm1.prettyPrintAlarm(Serial);
@@ -117,3 +135,4 @@ void loop() {
 }
 
  
+

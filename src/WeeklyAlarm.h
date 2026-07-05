@@ -30,9 +30,41 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of
 
 #include "Arduino.h"
 
-#include "Time.h"
-//include Time this way if you using PlatformIo
-//#include "../../Time/TimeLib.h"
+#ifdef __NEWLIB__
+    #include <time.h>
+    #define WA_NOW()           time(nullptr)
+    #define WA_BREAKTIME(t, e) do { time_t _t = (t); struct tm* _tmp = localtime(&_t); (e) = *_tmp; } while(0)
+    #define WA_MAKETIME(e)     mktime(&e)
+    typedef struct tm          WA_TimeElements;
+    #define WA_WDAY            tm_wday
+    #define WA_HOUR            tm_hour
+    #define WA_MINUTE          tm_min
+    #define WA_DAY             tm_mday
+    #define WA_MONTH           tm_mon
+    #define WA_YEAR            tm_year
+    #define WA_WDAY_OFFSET 0  // 0=Sunday
+    typedef enum {
+      dowInvalid, dowSunday, dowMonday, dowTuesday, dowWednesday, dowThursday, dowFriday, dowSaturday
+    } timeDayOfWeek_t;
+#else
+    //#include "TimeLib.h"
+    //include Time this way if you using PlatformIo
+    #include "../Time/TimeLib.h"
+    #include "../Time/TimeLib.h"
+    #define WA_NOW()           now()
+    #define WA_BREAKTIME(t, e) breakTime(t, e)
+    #define WA_MAKETIME(e)     makeTime(e)
+    typedef TimeElements       WA_TimeElements;
+    #define WA_WDAY            Wday
+    #define WA_HOUR            Hour
+    #define WA_MINUTE          Minute
+    #define WA_DAY             Day
+    #define WA_MONTH           Month
+    #define WA_YEAR            Year
+    #define WA_WDAY_OFFSET 1  // 1=Sunday (dowSunday)
+#endif
+
+
 
 #define ALARM_ENABLE_MASK (timeDayOfWeek_t)0
 
@@ -47,8 +79,8 @@ class AlarmNode {
   friend class WeeklyAlarm;
   bool reset();
   bool isEnable();
-  int8_t getDayToGo(TimeElements &now);
-  bool todaysTimeIsPast(TimeElements &now, TimeElements &alrm) const; 
+  int8_t getDayToGo(WA_TimeElements &now);
+  bool todaysTimeIsPast(WA_TimeElements &now, WA_TimeElements &alrm) const; 
   uint8_t dayEnable;
   virtual void callback() = 0; 
   AlarmNode *nextAlarm;
@@ -98,13 +130,6 @@ public:
   template<class Callable>
   WeeklyAlarm& add(Callable callable) {
     alarm = new Alarm<Callable>(callable);
-    if ( !alarmHead ) {
-      alarmHead = alarm;
-      return *this;
-    }
-    AlarmNode *temp = alarmHead;
-    while ( temp->nextAlarm ) temp = temp->nextAlarm;
-    temp->nextAlarm = alarm;
     return *this;
   }
 
@@ -119,7 +144,7 @@ public:
 
 /**
  * @brief 
- * put the day of week (timeDayofWeek_t) the you want to enable
+ * put the day of week the you want to enable
  * @param day 
  * @return WeeklyAlarm& 
  */
@@ -244,6 +269,17 @@ public:
     return alarm->dayEnable;
   }
 
+
+  /**
+   * @brief Get the target time of the alarm
+   * @return WA_TimeElements; arduino timeLib: TimeElements, POSIX lib: struct tm
+   */
+  WA_TimeElements getTime() const {
+    WA_TimeElements time;
+    WA_BREAKTIME(alarm->target, time);
+    return time;
+  }
+
   /**
    * @brief Build a JSON string of the alarm settings
    * 
@@ -255,7 +291,17 @@ private:
   static AlarmNode *alarmHead;
   AlarmNode *alarm;
   static void prettyPrintClock(int hour, int minute, Stream &stream);
-  bool isAlarm();
-
+  static void sort(AlarmNode *TimeOutNode);
+  /**
+  * @brief 
+  * Pop alarms instance from the list.
+  */
+  static void pop(AlarmNode *node);
 };
+
+struct AlarmProperties
+{
+  uint8_t daysEnables = 0;
+};
+
 #endif

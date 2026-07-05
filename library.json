@@ -1,0 +1,26 @@
+{
+  "name": "WeeklyAlarm",
+  "version": "5.1.0",
+  "description": "Weekly day-of-week alarm scheduler for recurring time-based callbacks. Triggers at a set time on selected days, inspired by programmable thermostat schedulers. Supports lambdas, functors and function pointers. Compatible with STM32/newlib (POSIX time) and classic Arduino (TimeLib) via automatic detection.",
+  "keywords": "alarm, scheduler, timer, weekly, thermostat, calendar, time",
+  "authors": [
+    {
+      "name": "Nitrof",
+      "url": "https://github.com/NitrofMtl"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NitrofMtl/weeklyAlarm"
+  },
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": "*",
+  "headers": "WeeklyAlarm.h",
+  "dependencies": [
+    {
+      "name": "Time",
+      "platforms": ["atmelavr", "atmelmegaavr"]
+    }
+  ]
+}
