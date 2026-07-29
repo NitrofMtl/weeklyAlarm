@@ -1,14 +1,26 @@
 # Changelog
 
 ---
+## [5.2.0] - 2026-07-28
 
-## [5.1.0] - 2026-07-28
+### ADD:
+
+-Single alarm function
+
+### FIX:
+
+-POSIX support years and wDay offset
+
+
+
+---
+
+## [5.1.0] - 2026-07-03
 
 
 ### ADD:
 
 -POSIX time lib support
--Single alarm function
 -make linked list sorted for fast handling
 
 ### FIX:
