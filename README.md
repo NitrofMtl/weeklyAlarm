@@ -219,6 +219,33 @@ myAlarm.remove();
 
 ---
 
+
+### `setSingleAlarm()`
+
+```cpp
+setSingleAlarm(time_t target);
+```
+
+Configures the alarm to trigger once at a specific Unix epoch time.
+
+Unlike the weekly scheduling API, this function does **not** calculate the next occurrence or automatically rearm the alarm after it expires. It simply updates the target time. If recurring behavior is required, the callback is responsible for computing the next epoch and calling `setSingleAlarm()` again.
+
+> **Note:** This function does not insert the alarm into the scheduler. Call `arm()` to activate or reposition the alarm.
+
+---
+
+### `arm()`
+
+```cpp
+arm();
+```
+
+Arms the alarm by inserting it into the scheduler queue.
+
+If the alarm is already active, it is first removed from the queue and then reinserted according to its current target time. This allows the alarm to be safely repositioned after changing its target.
+
+> **Note:** `arm()` does not modify the target time. The target must be configured beforehand using `setSingleAlarm()`.
+
 ### `isEnable()` → `bool`
 
 Returns `true` if the alarm is currently enabled.

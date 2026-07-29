@@ -1,6 +1,47 @@
 #include "WeeklyAlarm.h"
 
 
+#ifdef __NEWLIB__
+void breakTime(time_t t, tmElements_t &tm)
+{
+  struct tm *tm_info = gmtime(&t);
+  if (!tm_info)
+  return;
+
+  // Arduino TimeLib compatible:
+  // Year  = years since 1970
+  // Month = 1..12
+  // Wday  = Sunday=1 ... Saturday=7
+  tm.Year   = tm_info->tm_year -70;
+  tm.Month  = tm_info->tm_mon + 1;
+  tm.Day    = tm_info->tm_mday;
+
+  // Arduino convention:
+  // Sunday=1 ... Saturday=7
+  tm.Wday = tm_info->tm_wday + 1;
+
+  tm.Hour   = tm_info->tm_hour;
+  tm.Minute = tm_info->tm_min;
+  tm.Second = tm_info->tm_sec;
+}
+
+
+time_t makeTime(const tmElements_t &e)
+{
+  struct tm tm_info{};
+
+  tm_info.tm_year = e.Year + 70;
+  tm_info.tm_mon  = e.Month - 1;
+  tm_info.tm_mday = e.Day;
+  tm_info.tm_hour = e.Hour;
+  tm_info.tm_min  = e.Minute;
+  tm_info.tm_sec  = e.Second;
+
+  return mktime(&tm_info);
+}
+#endif //__NEWLIB__
+
+
 AlarmNode::AlarmNode() : 
   dayEnable(0),
   nextAlarm(nullptr),
@@ -11,17 +52,19 @@ AlarmNode::AlarmNode() :
 bool AlarmNode::reset()
 {
   if ( !isEnable() || 2 > dayEnable) return false; //dont set if alarm off or no days is active
-  WA_TimeElements now;
-  WA_BREAKTIME( ::WA_NOW(), now);
-  WA_TimeElements alrm;
-  WA_BREAKTIME( target, alrm );
-  if ( (dayEnable & 1<<now.WA_WDAY) && !todaysTimeIsPast(now, alrm) ) {
-    alrm.WA_DAY = now.WA_DAY;
-    target = WA_MAKETIME( alrm );
+  if (target == 0) return false;// time not set yet, cannot compute next occurrence
+  tmElements_t tmNow;
+  breakTime( ::now(), tmNow);
+  tmElements_t alrm;
+  breakTime(target, alrm);
+  alrm.Second = 0; // reset seconds to 0, because we only set hour and minutes
+  if ( (dayEnable & 1<<tmNow.Wday) && !todaysTimeIsPast(tmNow, alrm) ) {
+    alrm.Day = tmNow.Day;
+    target = makeTime(alrm);
     return true;
   }
-  alrm.WA_DAY = now.WA_DAY + getDayToGo( now );
-  target = WA_MAKETIME( alrm );
+  alrm.Day = tmNow.Day + getDayToGo(tmNow);
+  target = makeTime(alrm);
   return true;
 }
 
@@ -32,13 +75,13 @@ bool AlarmNode::isEnable()
 }
 
 
-int8_t AlarmNode::getDayToGo(WA_TimeElements &now)
+int8_t AlarmNode::getDayToGo(tmElements_t &now)
 {
   struct size3Bits {
     uint8_t day:3;
   }week;
   uint8_t count = 1;
-  week.day = now.WA_WDAY + 1;
+  week.day = now.Wday + 1;
   uint8_t flag = dayEnable & 0b11111110;
   while ( !(1<<week.day & flag) ) {
     if ( week.day == 0 ) {
@@ -51,10 +94,10 @@ int8_t AlarmNode::getDayToGo(WA_TimeElements &now)
 }
 
 
-bool AlarmNode::todaysTimeIsPast(WA_TimeElements &now, WA_TimeElements &alrm) const
+bool AlarmNode::todaysTimeIsPast(tmElements_t &now, tmElements_t &alrm) const
 {
-  if ( now.WA_HOUR > alrm.WA_HOUR ) return true;
-  if ( now.WA_HOUR == alrm.WA_HOUR && now.WA_MINUTE >= alrm.WA_MINUTE) return true;
+  if ( now.Hour > alrm.Hour ) return true;
+  if ( now.Hour == alrm.Hour && now.Minute >= alrm.Minute) return true;
   return false;
 }
 
@@ -90,6 +133,7 @@ void WeeklyAlarm::pop(AlarmNode *node)
 void WeeklyAlarm::sort(AlarmNode *node)
 {
   if (!node) return;
+  if (node->target < now()) return; // dont sort if target is in the past
   node->nextAlarm = nullptr; // ensure clean insertion
   if (!alarmHead || node->target < alarmHead->target) {
       node->nextAlarm = alarmHead;
@@ -105,6 +149,24 @@ void WeeklyAlarm::sort(AlarmNode *node)
 }
 
 
+/**
+ * @brief Arm the alarm and insert it into the scheduler queue.
+ *
+ * The alarm target time must be configured before calling this function.
+ * If the alarm is already present in the queue, it is repositioned according
+ * to its current target time.
+ *
+ * @note This function does not calculate the next alarm occurrence.
+ *       The caller is responsible for updating the target time.
+ */
+void WeeklyAlarm::arm()
+{
+  if (!alarm || !isEnable()) return;
+  pop(alarm);
+  sort(alarm);
+}
+
+
 void WeeklyAlarm::remove()
 {
   if (!alarm) return;
@@ -117,11 +179,11 @@ void WeeklyAlarm::remove()
 WeeklyAlarm& WeeklyAlarm::set(uint8_t hour, uint8_t min)
 {
   if (!alarm) return *this;
-  WA_TimeElements t;
-  WA_BREAKTIME( WA_NOW(), t );
-  t.WA_HOUR = hour;
-  t.WA_MINUTE = min;
-  alarm->target = WA_MAKETIME(t); // now hour and minutes is store into target
+  tmElements_t t;
+  breakTime( now(), t );
+  t.Hour = hour;
+  t.Minute = min;
+  alarm->target = makeTime(t); // now hour and minutes is store into target
   
   return *this;
 }
@@ -155,15 +217,10 @@ void WeeklyAlarm::alarmOn()
 {
   if (!alarm) return;
   if (isEnable()) return;
-  if (alarm->target == 0) {
-    Serial.println("ERROR: WeeklyAlarm --> set() must be called before alarmOn()");
-    return;
-  }
   dayEnable( ALARM_ENABLE_MASK );
-  if (!alarm->reset() ) {
-    alarmOff();
+  if (alarm->reset() ) {
+    sort(alarm);
   }
-  sort(alarm);
 }
 
 
@@ -191,7 +248,7 @@ void WeeklyAlarm::handler()
 {
   if ( !alarmHead ) return;
 
-  time_t n = WA_NOW();
+  time_t n = now();
     
   while (alarmHead && n >= alarmHead->target) {
     AlarmNode* alm = alarmHead;
@@ -222,20 +279,27 @@ bool WeeklyAlarm::isDayEnable(timeDayOfWeek_t day)
 }
 
 
+void WeeklyAlarm::setSingleAlarm(time_t target)
+{
+  if (!alarm) return;
+  alarm->target = target;
+}
+
+
 void WeeklyAlarm::prettyPrintTime(time_t time, Stream &stream)
 {
-  WA_TimeElements t;
-  WA_BREAKTIME(time, t);
+  tmElements_t t;
+  breakTime(time, t);
   const String weekType[10] {"invalid", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
-  prettyPrintClock(t.WA_HOUR, t.WA_MINUTE, stream);
+  prettyPrintClock(t.Hour, t.Minute, stream);
   stream.print(" ");
-  stream.print(weekType[t.WA_WDAY]);
+  stream.print(weekType[t.Wday]);
   stream.print(" ");
-  stream.print(t.WA_DAY);
+  stream.print(t.Day);
   stream.print("/");
-  stream.print(t.WA_MONTH); 
+  stream.print(t.Month); 
   stream.print("/");
-  stream.print(t.WA_YEAR+1970); 
+  stream.print(t.Year+1970); 
   stream.println(); 
 }
 
@@ -284,11 +348,11 @@ String WeeklyAlarm::toJSON()
   if ( isDayEnable(dowSaturday) ) json += "true,";
   else json += "false";
   json += "},\"hour\":";
-  WA_TimeElements t;
-  WA_BREAKTIME(alarm->target, t);
-  json += t.WA_HOUR;
+  tmElements_t t;
+  breakTime(alarm->target, t);
+  json += t.Hour;
   json += ",\"minute\":";
-  json += t.WA_MINUTE;
+  json += t.Minute;
   json += "}}";
   return json;
 }

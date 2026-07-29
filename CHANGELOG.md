@@ -1,6 +1,18 @@
 # Changelog
 
 ---
+## [5.2.0] - 2026-07-28
+
+### ADD:
+
+-Single alarm function
+-Add POSIX support
+
+### FIX:
+- Reset second on rearm 
+- Add non-set guard on  reset
+
+---
 
 ## [5.1.0] - 2026-07-03
 
